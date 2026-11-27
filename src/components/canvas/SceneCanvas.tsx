@@ -1,123 +1,83 @@
 "use client";
 
-import { PerspectiveCamera, useTexture } from "@react-three/drei";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
-import { CatmullRomCurve3, TubeGeometry, Vector3 } from "three";
-import type { Group, Points } from "three";
-import { theme } from "@/lib/theme";
+import { useRef } from "react";
+import type { CSSProperties, PointerEvent } from "react";
 
-function Starfield() {
-  const points = useRef<Points>(null);
-  const { pointer } = useThree();
-  const positions = useMemo(() => {
-    const values = new Float32Array(900 * 3);
-    for (let i = 0; i < 900; i += 1) {
-      values[i * 3] = (Math.sin(i * 127.1) * 0.5) * 24;
-      values[i * 3 + 1] = (Math.sin(i * 311.7) * 0.5) * 15;
-      values[i * 3 + 2] = Math.sin(i * 74.7) * -32;
-    }
-    return values;
-  }, []);
-
-  useFrame((_, delta) => {
-    if (!points.current) return;
-    const geometry = points.current.geometry;
-    const attribute = geometry.attributes.position;
-    for (let i = 0; i < attribute.count; i += 1) {
-      let z = attribute.getZ(i) + delta * (1.4 + (i % 5) * 0.2);
-      if (z > 5) {
-        z = -32;
-        attribute.setX(i, (Math.random() - 0.5) * 24);
-        attribute.setY(i, (Math.random() - 0.5) * 15);
-      }
-      attribute.setZ(i, z);
-    }
-    attribute.needsUpdate = true;
-    points.current.position.x += (pointer.x * -0.7 - points.current.position.x) * delta * 0.8;
-    points.current.position.y += (pointer.y * -0.45 - points.current.position.y) * delta * 0.8;
-  });
-
-  return (
-    <points ref={points}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-      </bufferGeometry>
-      <pointsMaterial color="#d9e9ff" size={0.035} sizeAttenuation transparent opacity={0.88} />
-    </points>
-  );
-}
-
-function SafetyTether() {
-  const tether = useMemo(() => {
-    const path = new CatmullRomCurve3([
-      new Vector3(-0.2, 0.43, 0.08),
-      new Vector3(-0.42, 0.35, 0.08),
-      new Vector3(-0.5, 0.1, 0.08),
-      new Vector3(-0.76, -0.03, 0.08),
-      new Vector3(-0.92, -0.3, 0.08),
-    ]);
-    return path;
-  }, []);
-  const cable = useMemo(() => new TubeGeometry(tether, 48, 0.018, 8, false), [tether]);
-  const highlight = useMemo(() => {
-    const offsetPath = new CatmullRomCurve3(
-      tether.getPoints(48).map((point) => new Vector3(point.x, point.y + 0.012, point.z + 0.008)),
-    );
-    return new TubeGeometry(offsetPath, 48, 0.003, 5, false);
-  }, [tether]);
-
-  return (
-    <group>
-      <mesh geometry={cable}>
-        <meshStandardMaterial color="#344454" metalness={0.72} roughness={0.34} />
-      </mesh>
-      <mesh geometry={highlight}>
-        <meshBasicMaterial color="#87dfff" transparent opacity={0.8} />
-      </mesh>
-      <mesh position={[-0.2, 0.43, 0.08]}>
-        <sphereGeometry args={[0.045, 12, 12]} />
-        <meshStandardMaterial color="#a7d8e8" metalness={0.8} roughness={0.26} />
-      </mesh>
-    </group>
-  );
-}
-
-function Astronaut() {
-  const astronaut = useRef<Group>(null);
-  const { pointer } = useThree();
-  const suit = useTexture("/astronaut-cutout-v2.png");
-
-  useFrame((state, delta) => {
-    if (!astronaut.current) return;
-    astronaut.current.position.y = 0.2 + Math.sin(state.clock.elapsedTime * 0.8) * 0.1;
-    astronaut.current.position.x += (1.35 + pointer.x * 0.24 - astronaut.current.position.x) * delta * 1.1;
-    astronaut.current.rotation.z += (-pointer.x * 0.08 - astronaut.current.rotation.z) * delta * 1.3;
-    astronaut.current.rotation.y += (pointer.x * 0.1 - astronaut.current.rotation.y) * delta * 1.2;
-  });
-
-  return (
-    <group ref={astronaut} position={[1.35, 0.2, 0]} scale={0.58}>
-      <SafetyTether />
-      <mesh position={[0, 0, 0.12]}>
-        <planeGeometry args={[1.75, 2.05]} />
-        <meshBasicMaterial map={suit} transparent alphaTest={0.02} depthWrite={false} toneMapped={false} />
-      </mesh>
-    </group>
-  );
+function seededRandom(seed: number) {
+  const value = Math.sin(seed * 12.9898) * 43758.5453;
+  return value - Math.floor(value);
 }
 
 export function SceneCanvas() {
+  const field = useRef<HTMLDivElement>(null);
+  const stars = Array.from({ length: 220 }, (_, index) => {
+    const bright = index % 7 === 0;
+    const seed = index + 900;
+    const diameter = bright ? 2.4 + seededRandom(seed + 2) * 1.8 : 1 + seededRandom(seed + 2) * 1.2;
+    return {
+      bright,
+      style: {
+        left: `${seededRandom(seed) * 100}%`,
+        top: `${seededRandom(seed + 1) * 100}%`,
+        width: `${diameter}px`,
+        height: `${diameter}px`,
+        opacity: bright ? 0.92 : 0.35 + seededRandom(seed + 3) * 0.45,
+        position: "absolute",
+        display: "block",
+        borderRadius: "50%",
+        background: bright ? "#f4fbff" : "#b4c9e8",
+        boxShadow: bright ? "0 0 6px 1px rgb(183 224 255 / 70%), 0 0 14px 2px rgb(122 193 255 / 35%)" : "none",
+        animation: `star-drift ${5 + seededRandom(seed + 4) * 14}s linear ${-seededRandom(seed + 5) * 18}s infinite`,
+        transform: "translate3d(var(--pointer-offset-x, 0px), var(--pointer-offset-y, 0px), 0)",
+        willChange: "translate",
+      } satisfies CSSProperties,
+    };
+  });
+
+  function moveField(event: PointerEvent<HTMLDivElement>) {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - bounds.left) / bounds.width - 0.5;
+    const y = (event.clientY - bounds.top) / bounds.height - 0.5;
+    field.current?.style.setProperty("--pointer-offset-x", `${-x * 18}px`);
+    field.current?.style.setProperty("--pointer-offset-y", `${-y * 12}px`);
+  }
+
   return (
-    <Canvas className="h-full w-full" dpr={[1, 1.5]} gl={{ antialias: true, alpha: false }}>
-      <color attach="background" args={[theme.colors.void]} />
-      <fog attach="fog" args={[theme.colors.void, 12, 34]} />
-      <PerspectiveCamera makeDefault position={[0, 0, 7]} fov={42} />
-      <ambientLight intensity={0.6} />
-      <directionalLight position={[-3, 5, 6]} intensity={1.8} color="#dceeff" />
-      <pointLight position={[2, 1, 3]} intensity={18} color={theme.colors.cyan} distance={8} />
-      <Starfield />
-      <Astronaut />
-    </Canvas>
+    <div
+      ref={field}
+      aria-hidden="true"
+      className="starfield-sky"
+      style={{
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        overflow: "hidden",
+        background: "var(--void)",
+        pointerEvents: "auto",
+      }}
+      onPointerMove={moveField}
+      onPointerLeave={() => {
+        field.current?.style.setProperty("--pointer-offset-x", "0px");
+        field.current?.style.setProperty("--pointer-offset-y", "0px");
+      }}
+    >
+      {stars.map((star, index) => (
+        <span
+          key={index}
+          className="starfield-dot"
+          style={star.style}
+        />
+      ))}
+      <style>{`
+        @keyframes star-drift {
+          from { translate: 0 -12vh; }
+          to { translate: 0 112vh; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .starfield-dot { animation-duration: 28s !important; }
+        }
+      `}</style>
+    </div>
   );
 }
