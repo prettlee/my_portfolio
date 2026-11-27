@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+:root {
+  --void: #05060a;
+  --ink: #0c0f18;
+  --panel: #141824;
+  --line: #2a3144;
+  --mist: #93a0b8;
+  --paper: #e8eef8;
+  --cyan: #5ce1ff;
+  --violet: #9b8cff;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-void: var(--void);
+  --color-ink: var(--ink);
+  --color-panel: var(--panel);
+  --color-line: var(--line);
+  --color-mist: var(--mist);
+  --color-paper: var(--paper);
+  --color-cyan: var(--cyan);
+  --color-violet: var(--violet);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-syne), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+html {
+  background: var(--void);
+}
+
+body {
+  background: var(--void);
+  color: var(--paper);
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--cyan) 32%, transparent);
+  color: var(--paper);
+}
