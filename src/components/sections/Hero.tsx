@@ -19,7 +19,7 @@ export function Hero() {
         animate="show"
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
       >
-        Dark room
+        A little further
       </motion.p>
       <motion.h1
         className="mt-4 max-w-4xl font-display text-5xl leading-[0.92] font-semibold tracking-tight text-paper md:text-7xl"
@@ -28,7 +28,7 @@ export function Hero() {
         animate="show"
         transition={{ duration: 0.8, delay: reduceMotion ? 0 : 0.08, ease: [0.22, 1, 0.36, 1] }}
       >
-        A space built around the work.
+        Exploring the space between ideas.
       </motion.h1>
       <motion.p
         className="mt-6 max-w-md text-base leading-7 text-mist"
@@ -37,7 +37,7 @@ export function Hero() {
         animate="show"
         transition={{ duration: 0.8, delay: reduceMotion ? 0 : 0.16, ease: [0.22, 1, 0.36, 1] }}
       >
-        Type, color, and a live viewport. The centerpiece grows from here.
+        Drift through a field of stars. Move your cursor to steer the journey.
       </motion.p>
     </section>
   );
