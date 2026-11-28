@@ -9,10 +9,8 @@ function seededRandom(seed: number) {
 }
 
 const planetSurface = "radial-gradient(circle at 31% 26%, #f4fbff 0%, #dcecff 13%, #b4c9e8 37%, #637a9d 69%, #101827 100%)";
-const planetGlow = "0 0 24px 4px rgb(183 224 255 / 48%), 0 0 68px 14px rgb(122 193 255 / 30%), inset -20px -14px 26px rgb(1 7 16 / 68%), inset 8px 7px 16px rgb(255 255 255 / 24%)";
-const tealPlanetSurface = "radial-gradient(circle at 31% 26%, #e8fffc 0%, #adece5 14%, #5e9fad 42%, #28516b 73%, #101827 100%)";
-const lavenderPlanetSurface = "radial-gradient(circle at 31% 26%, #f6f1ff 0%, #d9cdf7 15%, #9188c4 40%, #4a4a74 72%, #12182a 100%)";
-const planetRingGlow = "0 0 2px rgb(244 251 255 / 100%), 0 0 8px rgb(183 224 255 / 98%), 0 0 20px rgb(122 193 255 / 86%), 0 0 42px rgb(122 193 255 / 45%)";
+const planetGlow = "0 0 24px 4px rgb(244 251 255 / 54%), 0 0 68px 14px rgb(244 251 255 / 34%), inset -20px -14px 26px rgb(1 7 16 / 68%), inset 8px 7px 16px rgb(255 255 255 / 24%)";
+const planetRingGlow = "0 0 2px rgb(244 251 255 / 100%), 0 0 8px rgb(244 251 255 / 98%), 0 0 20px rgb(244 251 255 / 82%), 0 0 42px rgb(244 251 255 / 42%)";
 const ringSparklePositions = [
   { left: "14%", top: "84%" },
   { left: "85%", top: "16%" },
@@ -65,7 +63,7 @@ const planets = [
     size: "clamp(44px, 5vw, 68px)",
     duration: "19s",
     delay: "-5s",
-    surface: tealPlanetSurface,
+    surface: planetSurface,
     glow: planetGlow,
     rings: [],
   },
@@ -76,7 +74,7 @@ const planets = [
     size: "clamp(48px, 5.5vw, 74px)",
     duration: "24s",
     delay: "-11s",
-    surface: lavenderPlanetSurface,
+    surface: planetSurface,
     glow: planetGlow,
     rings: [],
   },
@@ -84,6 +82,10 @@ const planets = [
 
 export function SceneCanvas() {
   const field = useRef<HTMLDivElement>(null);
+  const steeringTarget = useRef({ x: 0, y: 0, heading: 0 });
+  const steeringCurrent = useRef({ x: 0, y: 0, heading: 0 });
+  const steeringFrame = useRef<number | null>(null);
+  const previousFrameTime = useRef(0);
   const stars = Array.from({ length: 220 }, (_, index) => {
     const bright = index % 7 === 0;
     const seed = index + 900;
@@ -114,14 +116,60 @@ export function SceneCanvas() {
     };
   });
 
+  function updateSteering(timestamp: number) {
+    const elapsed = previousFrameTime.current ? Math.min(timestamp - previousFrameTime.current, 48) : 16;
+    previousFrameTime.current = timestamp;
+    const easing = 1 - Math.exp(-elapsed / 130);
+    const target = steeringTarget.current;
+    const current = steeringCurrent.current;
+    const headingDelta = ((target.heading - current.heading + 540) % 360) - 180;
+
+    current.x += (target.x - current.x) * easing;
+    current.y += (target.y - current.y) * easing;
+    current.heading = (current.heading + headingDelta * easing + 360) % 360;
+
+    const element = field.current;
+    element?.style.setProperty("--star-steer-x", `${-current.x * 260}px`);
+    element?.style.setProperty("--star-steer-y", `${-current.y * 180}px`);
+    element?.style.setProperty("--planet-steer-x", `${-current.x * 420}px`);
+    element?.style.setProperty("--planet-steer-y", `${-current.y * 300}px`);
+    element?.style.setProperty("--world-rotation", `${current.heading}deg`);
+
+    const headingRemaining = Math.abs(((target.heading - current.heading + 540) % 360) - 180);
+    if (Math.abs(target.x - current.x) > 0.001 || Math.abs(target.y - current.y) > 0.001 || headingRemaining > 0.05) {
+      steeringFrame.current = requestAnimationFrame(updateSteering);
+      return;
+    }
+
+    current.x = target.x;
+    current.y = target.y;
+    current.heading = target.heading;
+    steeringFrame.current = null;
+    previousFrameTime.current = 0;
+  }
+
+  function requestSteeringFrame() {
+    if (steeringFrame.current === null) {
+      steeringFrame.current = requestAnimationFrame(updateSteering);
+    }
+  }
+
   function moveField(event: PointerEvent<HTMLDivElement>) {
     const bounds = event.currentTarget.getBoundingClientRect();
     const x = (event.clientX - bounds.left) / bounds.width - 0.5;
     const y = (event.clientY - bounds.top) / bounds.height - 0.5;
-    field.current?.style.setProperty("--star-steer-x", `${-x * 260}px`);
-    field.current?.style.setProperty("--star-steer-y", `${-y * 180}px`);
-    field.current?.style.setProperty("--planet-steer-x", `${-x * 420}px`);
-    field.current?.style.setProperty("--planet-steer-y", `${-y * 300}px`);
+    const radius = Math.hypot(x, y);
+    const heading = radius > 0.08
+      ? (Math.atan2(y, x) * 180 / Math.PI + 360) % 360
+      : steeringTarget.current.heading;
+
+    steeringTarget.current = { x, y, heading };
+    requestSteeringFrame();
+  }
+
+  function recenterField() {
+    steeringTarget.current = { ...steeringTarget.current, x: 0, y: 0 };
+    requestSteeringFrame();
   }
 
   return (
@@ -139,14 +187,19 @@ export function SceneCanvas() {
         pointerEvents: "auto",
       }}
       onPointerMove={moveField}
-      onPointerLeave={() => {
-        field.current?.style.setProperty("--star-steer-x", "0px");
-        field.current?.style.setProperty("--star-steer-y", "0px");
-        field.current?.style.setProperty("--planet-steer-x", "0px");
-        field.current?.style.setProperty("--planet-steer-y", "0px");
-      }}
+      onPointerLeave={recenterField}
     >
-      <div aria-hidden="true" style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          inset: 0,
+          pointerEvents: "none",
+          transform: "rotate(var(--world-rotation, 0deg))",
+          transformOrigin: "center",
+          willChange: "transform",
+        }}
+      >
         {planets.map((planet) => (
           <span
             key={planet.id}
@@ -209,26 +262,22 @@ export function SceneCanvas() {
             />
           </span>
         ))}
+        {stars.map((star, index) => (
+          <span
+            key={index}
+            className="starfield-dot"
+            style={star.style}
+          />
+        ))}
       </div>
-      {stars.map((star, index) => (
-        <span
-          key={index}
-          className="starfield-dot"
-          style={star.style}
-        />
-      ))}
       <style>{`
-        .starfield-dot,
-        .ambient-planet {
-          transition: transform 480ms cubic-bezier(0.2, 0.8, 0.2, 1);
-        }
         .planet-ring-sparkle {
           position: absolute;
           width: 3px;
           height: 3px;
           border-radius: 50%;
           background: #f4fbff;
-          box-shadow: 0 0 4px 2px #f4fbff, 0 0 10px 4px rgb(183 224 255 / 90%), 0 0 18px 7px rgb(122 193 255 / 62%);
+          box-shadow: 0 0 4px 2px #f4fbff, 0 0 10px 4px rgb(244 251 255 / 90%), 0 0 18px 7px rgb(244 251 255 / 62%);
           animation: ring-sparkle 2.3s ease-in-out infinite;
           pointer-events: none;
         }
@@ -264,8 +313,6 @@ export function SceneCanvas() {
           }
         }
         @media (prefers-reduced-motion: reduce) {
-          .starfield-dot,
-          .ambient-planet { transition: none; }
           .planet-ring-sparkle { animation: none; opacity: 0.8; }
           .starfield-dot { animation-duration: 28s !important; }
           .ambient-planet { animation-duration: 30s !important; }
