@@ -114,7 +114,7 @@ export function SceneCanvas() {
     };
   });
 
-  function updateSteering() {
+  function updatePointerSteering() {
     const element = field.current;
     const pointer = pointerPosition.current;
     if (!element || !pointer) {
@@ -143,7 +143,7 @@ export function SceneCanvas() {
 
   function requestSteeringFrame() {
     if (steeringFrame.current === null) {
-      steeringFrame.current = requestAnimationFrame(updateSteering);
+      steeringFrame.current = requestAnimationFrame(updatePointerSteering);
     }
   }
 
