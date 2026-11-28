@@ -10,7 +10,12 @@ function seededRandom(seed: number) {
 
 const planetSurface = "radial-gradient(circle at 31% 26%, #f4fbff 0%, #dcecff 13%, #b4c9e8 37%, #637a9d 69%, #101827 100%)";
 const planetGlow = "0 0 24px 4px rgb(183 224 255 / 48%), 0 0 68px 14px rgb(122 193 255 / 30%), inset -20px -14px 26px rgb(1 7 16 / 68%), inset 8px 7px 16px rgb(255 255 255 / 24%)";
-const planetRingGlow = "0 0 2px rgb(255 252 236 / 100%), 0 0 8px rgb(255 224 163 / 98%), 0 0 20px rgb(246 181 92 / 86%), 0 0 42px rgb(246 181 92 / 45%)";
+const planetRingGlow = "0 0 2px rgb(244 251 255 / 100%), 0 0 8px rgb(183 224 255 / 98%), 0 0 20px rgb(122 193 255 / 86%), 0 0 42px rgb(122 193 255 / 45%)";
+const ringSparklePositions = [
+  { left: "14%", top: "84%" },
+  { left: "85%", top: "16%" },
+  { left: "97%", top: "61%" },
+] as const;
 
 const planets = [
   {
@@ -34,10 +39,10 @@ const planets = [
     surface: planetSurface,
     glow: planetGlow,
     rings: [
-      { id: "outer", width: "190%", height: "68%", rotation: "-22deg", color: "rgb(255 215 155 / 92%)", front: false },
-      { id: "middle-back", width: "158%", height: "52%", rotation: "-21deg", color: "rgb(255 239 205 / 100%)", front: false },
-      { id: "inner", width: "136%", height: "40%", rotation: "-24deg", color: "rgb(255 207 137 / 96%)", front: true },
-      { id: "middle-front", width: "176%", height: "61%", rotation: "-23deg", color: "rgb(255 232 184 / 100%)", front: true },
+      { id: "outer", width: "190%", height: "68%", rotation: "-22deg", color: "rgb(183 224 255 / 92%)", front: false },
+      { id: "middle-back", width: "158%", height: "52%", rotation: "-21deg", color: "rgb(244 251 255 / 100%)", front: false },
+      { id: "inner", width: "136%", height: "40%", rotation: "-24deg", color: "rgb(180 213 250 / 96%)", front: true },
+      { id: "middle-front", width: "176%", height: "61%", rotation: "-23deg", color: "rgb(220 236 255 / 100%)", front: true },
     ],
   },
   {
@@ -133,7 +138,7 @@ export function SceneCanvas() {
               "--planet-opacity": "0.88",
             } as CSSProperties}
           >
-            {planet.rings.map((ring) => (
+            {planet.rings.map((ring, ringIndex) => (
               <span
                 key={ring.id}
                 style={{
@@ -148,7 +153,19 @@ export function SceneCanvas() {
                   boxShadow: planetRingGlow,
                   zIndex: ring.front ? 2 : 0,
                 }}
-              />
+              >
+                {ringSparklePositions.map((sparkle, sparkleIndex) => (
+                  <span
+                    key={`${ring.id}-sparkle-${sparkleIndex}`}
+                    className="planet-ring-sparkle"
+                    style={{
+                      left: sparkle.left,
+                      top: sparkle.top,
+                      animationDelay: `${-(ringIndex * 0.52 + sparkleIndex * 1.1)}s`,
+                    }}
+                  />
+                ))}
+              </span>
             ))}
             <span
               style={{
@@ -173,6 +190,31 @@ export function SceneCanvas() {
         />
       ))}
       <style>{`
+        .planet-ring-sparkle {
+          position: absolute;
+          width: 3px;
+          height: 3px;
+          border-radius: 50%;
+          background: #f4fbff;
+          box-shadow: 0 0 4px 2px #f4fbff, 0 0 10px 4px rgb(183 224 255 / 90%), 0 0 18px 7px rgb(122 193 255 / 62%);
+          animation: ring-sparkle 2.3s ease-in-out infinite;
+          pointer-events: none;
+        }
+        .planet-ring-sparkle::before,
+        .planet-ring-sparkle::after {
+          content: "";
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          background: linear-gradient(transparent, #f4fbff, transparent);
+          transform: translate(-50%, -50%);
+        }
+        .planet-ring-sparkle::before { width: 1px; height: 14px; }
+        .planet-ring-sparkle::after { width: 14px; height: 1px; }
+        @keyframes ring-sparkle {
+          0%, 100% { opacity: 0.28; transform: translate(-50%, -50%) scale(0.7); }
+          48% { opacity: 1; transform: translate(-50%, -50%) scale(1.7); }
+        }
         @keyframes star-approach {
           from { translate: 0 0; scale: 0.12; opacity: 0.02; }
           to {
@@ -190,6 +232,7 @@ export function SceneCanvas() {
           }
         }
         @media (prefers-reduced-motion: reduce) {
+          .planet-ring-sparkle { animation: none; opacity: 0.8; }
           .starfield-dot { animation-duration: 28s !important; }
           .ambient-planet { animation-duration: 30s !important; }
         }
