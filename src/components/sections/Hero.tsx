@@ -12,9 +12,9 @@ export function Hero() {
 
   return (
     <section className="pointer-events-none relative z-20 flex min-h-dvh flex-col justify-center px-6 md:px-10">
-      <div className="mx-auto w-fit max-w-full sm:-translate-x-[3vw]">
+      <div className="mx-auto w-fit max-w-full sm:-translate-x-[4.5vw]">
         <motion.h1
-          className="w-max max-w-full whitespace-normal font-display text-[clamp(2.5rem,6vw,4.5rem)] leading-[0.98] font-semibold tracking-tight text-paper sm:whitespace-nowrap"
+          className="w-max max-w-full whitespace-normal font-sans text-[clamp(2.5rem,6vw,4.5rem)] leading-[0.98] font-semibold tracking-[-0.04em] text-paper sm:whitespace-nowrap"
           variants={rise}
           initial={reduceMotion ? "show" : "hidden"}
           animate="show"
