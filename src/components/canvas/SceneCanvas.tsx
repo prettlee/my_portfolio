@@ -8,8 +8,6 @@ function seededRandom(seed: number) {
   return value - Math.floor(value);
 }
 
-const MAX_STEERING_SPEED = 1.8;
-
 const planetSurface = "radial-gradient(circle at 31% 26%, #f4fbff 0%, #dcecff 13%, #b4c9e8 37%, #637a9d 69%, #101827 100%)";
 const planetGlow = "0 0 24px 4px rgb(244 251 255 / 54%), 0 0 68px 14px rgb(244 251 255 / 34%), inset -20px -14px 26px rgb(1 7 16 / 68%), inset 8px 7px 16px rgb(255 255 255 / 24%)";
 const planetRingGlow = "0 0 2px rgb(244 251 255 / 100%), 0 0 8px rgb(244 251 255 / 98%), 0 0 20px rgb(244 251 255 / 82%), 0 0 42px rgb(244 251 255 / 42%)";
@@ -84,11 +82,11 @@ const planets = [
 
 export function SceneCanvas() {
   const field = useRef<HTMLDivElement>(null);
-  const steeringTarget = useRef({ x: 0, y: 0 });
-  const steeringCurrent = useRef({ x: 0, y: 0 });
+  const planetLayer = useRef<HTMLDivElement>(null);
+  const starLayer = useRef<HTMLDivElement>(null);
+  const pointerPosition = useRef<{ x: number; y: number } | null>(null);
   const steeringFrame = useRef<number | null>(null);
-  const previousFrameTime = useRef(0);
-  const stars = Array.from({ length: 220 }, (_, index) => {
+  const stars = Array.from({ length: 140 }, (_, index) => {
     const bright = index % 7 === 0;
     const seed = index + 900;
     const diameter = bright ? 2.4 + seededRandom(seed + 2) * 1.8 : 1 + seededRandom(seed + 2) * 1.2;
@@ -109,8 +107,6 @@ export function SceneCanvas() {
         background: bright ? "#f4fbff" : "#b4c9e8",
         boxShadow: bright ? "0 0 6px 1px rgb(183 224 255 / 70%), 0 0 14px 2px rgb(122 193 255 / 35%)" : "none",
         animation: `star-approach ${5 + seededRandom(seed + 4) * 11}s linear ${-seededRandom(seed + 5) * 16}s infinite`,
-        transform: "translate3d(var(--star-steer-x, 0px), var(--star-steer-y, 0px), 0)",
-        willChange: "translate, scale",
         "--star-x": `${targetX}vw`,
         "--star-y": `${targetY}vh`,
         "--star-opacity": String(opacity),
@@ -118,37 +114,31 @@ export function SceneCanvas() {
     };
   });
 
-  function updateSteering(timestamp: number) {
-    const elapsed = previousFrameTime.current ? Math.min(timestamp - previousFrameTime.current, 48) : 16;
-    previousFrameTime.current = timestamp;
-    const maxStep = MAX_STEERING_SPEED * elapsed / 1000;
-    const target = steeringTarget.current;
-    const current = steeringCurrent.current;
-    const deltaX = target.x - current.x;
-    const deltaY = target.y - current.y;
-    const distance = Math.hypot(deltaX, deltaY);
-    const step = Math.min(distance, maxStep);
-
-    if (distance > 0) {
-      current.x += (deltaX / distance) * step;
-      current.y += (deltaY / distance) * step;
-    }
-
+  function updateSteering() {
     const element = field.current;
-    element?.style.setProperty("--star-steer-x", `${-current.x * 260}px`);
-    element?.style.setProperty("--star-steer-y", `${-current.y * 260}px`);
-    element?.style.setProperty("--planet-steer-x", `${-current.x * 420}px`);
-    element?.style.setProperty("--planet-steer-y", `${-current.y * 420}px`);
-
-    if (distance > step + 0.001) {
-      steeringFrame.current = requestAnimationFrame(updateSteering);
+    const pointer = pointerPosition.current;
+    if (!element || !pointer) {
+      steeringFrame.current = null;
       return;
     }
 
-    current.x = target.x;
-    current.y = target.y;
+    const bounds = element.getBoundingClientRect();
+    const offsetX = pointer.x - (bounds.left + bounds.width / 2);
+    const offsetY = pointer.y - (bounds.top + bounds.height / 2);
+    const distance = Math.hypot(offsetX, offsetY);
+    const maxRadius = Math.max(1, Math.min(bounds.width, bounds.height) / 2);
+    const strength = Math.min(distance / maxRadius, 1);
+    const x = distance > 0 ? (offsetX / distance) * strength : 0;
+    const y = distance > 0 ? (offsetY / distance) * strength : 0;
+
+    if (starLayer.current) {
+      starLayer.current.style.transform = `translate3d(${-x * 260}px, ${-y * 260}px, 0)`;
+    }
+    if (planetLayer.current) {
+      planetLayer.current.style.transform = `translate3d(${-x * 420}px, ${-y * 420}px, 0)`;
+    }
+
     steeringFrame.current = null;
-    previousFrameTime.current = 0;
   }
 
   function requestSteeringFrame() {
@@ -158,16 +148,7 @@ export function SceneCanvas() {
   }
 
   function moveField(event: PointerEvent<HTMLDivElement>) {
-    const bounds = event.currentTarget.getBoundingClientRect();
-    const offsetX = event.clientX - (bounds.left + bounds.width / 2);
-    const offsetY = event.clientY - (bounds.top + bounds.height / 2);
-    const distance = Math.hypot(offsetX, offsetY);
-    const maxRadius = Math.max(1, Math.min(bounds.width, bounds.height) / 2);
-    const strength = Math.min(distance / maxRadius, 1);
-    const x = distance > 0 ? (offsetX / distance) * strength : 0;
-    const y = distance > 0 ? (offsetY / distance) * strength : 0;
-
-    steeringTarget.current = { x, y };
+    pointerPosition.current = { x: event.clientX, y: event.clientY };
     requestSteeringFrame();
   }
 
@@ -188,6 +169,16 @@ export function SceneCanvas() {
       onPointerMove={moveField}
     >
       <div aria-hidden="true" style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+        <div
+          ref={planetLayer}
+          style={{
+            position: "absolute",
+            inset: 0,
+            pointerEvents: "none",
+            transform: "translate3d(0, 0, 0)",
+            willChange: "transform",
+          }}
+        >
         {planets.map((planet) => (
           <span
             key={planet.id}
@@ -198,7 +189,7 @@ export function SceneCanvas() {
               top: "50%",
               width: planet.size,
               height: planet.size,
-              transform: "translate(calc(-50% + var(--planet-steer-x, 0px)), calc(-50% + var(--planet-steer-y, 0px)))",
+              transform: "translate(-50%, -50%)",
               borderRadius: "50%",
               animation: `planet-approach ${planet.duration} linear ${planet.delay} infinite`,
               willChange: "translate, scale",
@@ -250,6 +241,17 @@ export function SceneCanvas() {
             />
           </span>
         ))}
+        </div>
+        <div
+          ref={starLayer}
+          style={{
+            position: "absolute",
+            inset: 0,
+            pointerEvents: "none",
+            transform: "translate3d(0, 0, 0)",
+            willChange: "transform",
+          }}
+        >
         {stars.map((star, index) => (
           <span
             key={index}
@@ -257,6 +259,7 @@ export function SceneCanvas() {
             style={star.style}
           />
         ))}
+        </div>
       </div>
       <style>{`
         .planet-ring-sparkle {
