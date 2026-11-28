@@ -8,6 +8,45 @@ function seededRandom(seed: number) {
   return value - Math.floor(value);
 }
 
+const planetSurface = "radial-gradient(circle at 31% 26%, #f4fbff 0%, #dcecff 13%, #b4c9e8 37%, #637a9d 69%, #101827 100%)";
+const planetGlow = "0 0 24px 4px rgb(183 224 255 / 48%), 0 0 68px 14px rgb(122 193 255 / 30%), inset -20px -14px 26px rgb(1 7 16 / 68%), inset 8px 7px 16px rgb(255 255 255 / 24%)";
+
+const planets = [
+  {
+    id: "azure",
+    left: "78%",
+    top: "23%",
+    size: "clamp(88px, 12vw, 148px)",
+    duration: "38s",
+    delay: "-11s",
+    surface: planetSurface,
+    glow: planetGlow,
+    ring: undefined,
+  },
+  {
+    id: "violet",
+    left: "91%",
+    top: "58%",
+    size: "clamp(74px, 8vw, 104px)",
+    duration: "46s",
+    delay: "-27s",
+    surface: planetSurface,
+    glow: planetGlow,
+    ring: "rgb(183 224 255 / 75%)",
+  },
+  {
+    id: "amber",
+    left: "67%",
+    top: "75%",
+    size: "clamp(64px, 7vw, 88px)",
+    duration: "52s",
+    delay: "-36s",
+    surface: planetSurface,
+    glow: planetGlow,
+    ring: undefined,
+  },
+] as const;
+
 export function SceneCanvas() {
   const field = useRef<HTMLDivElement>(null);
   const stars = Array.from({ length: 220 }, (_, index) => {
@@ -68,6 +107,53 @@ export function SceneCanvas() {
         field.current?.style.setProperty("--pointer-offset-y", "0px");
       }}
     >
+      <div aria-hidden="true" style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+        {planets.map((planet) => (
+          <span
+            key={planet.id}
+            className="ambient-planet"
+            style={{
+              position: "absolute",
+              left: planet.left,
+              top: planet.top,
+              width: planet.size,
+              height: planet.size,
+              transform: "translate(-50%, -50%)",
+              borderRadius: "50%",
+              animation: `planet-float ${planet.duration} ease-in-out ${planet.delay} infinite alternate`,
+              willChange: "translate, scale",
+              opacity: 0.88,
+            }}
+          >
+            {planet.ring ? (
+              <span
+                style={{
+                  position: "absolute",
+                  left: "50%",
+                  top: "50%",
+                  width: "155%",
+                  height: "54%",
+                  transform: "translate(-50%, -50%) rotate(-22deg)",
+                  border: `1px solid ${planet.ring}`,
+                  borderRadius: "50%",
+                  boxShadow: `0 0 12px ${planet.ring}`,
+                }}
+              />
+            ) : null}
+            <span
+              style={{
+                position: "relative",
+                display: "block",
+                width: "100%",
+                height: "100%",
+                borderRadius: "50%",
+                background: planet.surface,
+                boxShadow: planet.glow,
+              }}
+            />
+          </span>
+        ))}
+      </div>
       {stars.map((star, index) => (
         <span
           key={index}
@@ -84,8 +170,13 @@ export function SceneCanvas() {
             opacity: var(--star-opacity);
           }
         }
+        @keyframes planet-float {
+          from { translate: 0 0; scale: 1; }
+          to { translate: 0 -12px; scale: 1.035; }
+        }
         @media (prefers-reduced-motion: reduce) {
           .starfield-dot { animation-duration: 28s !important; }
+          .ambient-planet { animation-duration: 52s !important; }
         }
       `}</style>
     </div>
