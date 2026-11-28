@@ -10,6 +10,8 @@ function seededRandom(seed: number) {
 
 const planetSurface = "radial-gradient(circle at 31% 26%, #f4fbff 0%, #dcecff 13%, #b4c9e8 37%, #637a9d 69%, #101827 100%)";
 const planetGlow = "0 0 24px 4px rgb(183 224 255 / 48%), 0 0 68px 14px rgb(122 193 255 / 30%), inset -20px -14px 26px rgb(1 7 16 / 68%), inset 8px 7px 16px rgb(255 255 255 / 24%)";
+const tealPlanetSurface = "radial-gradient(circle at 31% 26%, #e8fffc 0%, #adece5 14%, #5e9fad 42%, #28516b 73%, #101827 100%)";
+const lavenderPlanetSurface = "radial-gradient(circle at 31% 26%, #f6f1ff 0%, #d9cdf7 15%, #9188c4 40%, #4a4a74 72%, #12182a 100%)";
 const planetRingGlow = "0 0 2px rgb(244 251 255 / 100%), 0 0 8px rgb(183 224 255 / 98%), 0 0 20px rgb(122 193 255 / 86%), 0 0 42px rgb(122 193 255 / 45%)";
 const ringSparklePositions = [
   { left: "14%", top: "84%" },
@@ -56,6 +58,28 @@ const planets = [
     glow: planetGlow,
     rings: [],
   },
+  {
+    id: "teal",
+    travelX: -38,
+    travelY: 16,
+    size: "clamp(44px, 5vw, 68px)",
+    duration: "19s",
+    delay: "-5s",
+    surface: tealPlanetSurface,
+    glow: planetGlow,
+    rings: [],
+  },
+  {
+    id: "lavender",
+    travelX: 39,
+    travelY: 34,
+    size: "clamp(48px, 5.5vw, 74px)",
+    duration: "24s",
+    delay: "-11s",
+    surface: lavenderPlanetSurface,
+    glow: planetGlow,
+    rings: [],
+  },
 ] as const;
 
 export function SceneCanvas() {
@@ -81,7 +105,7 @@ export function SceneCanvas() {
         background: bright ? "#f4fbff" : "#b4c9e8",
         boxShadow: bright ? "0 0 6px 1px rgb(183 224 255 / 70%), 0 0 14px 2px rgb(122 193 255 / 35%)" : "none",
         animation: `star-approach ${5 + seededRandom(seed + 4) * 11}s linear ${-seededRandom(seed + 5) * 16}s infinite`,
-        transform: "translate3d(var(--pointer-offset-x, 0px), var(--pointer-offset-y, 0px), 0)",
+        transform: "translate3d(var(--star-steer-x, 0px), var(--star-steer-y, 0px), 0)",
         willChange: "translate, scale",
         "--star-x": `${targetX}vw`,
         "--star-y": `${targetY}vh`,
@@ -94,8 +118,10 @@ export function SceneCanvas() {
     const bounds = event.currentTarget.getBoundingClientRect();
     const x = (event.clientX - bounds.left) / bounds.width - 0.5;
     const y = (event.clientY - bounds.top) / bounds.height - 0.5;
-    field.current?.style.setProperty("--pointer-offset-x", `${-x * 18}px`);
-    field.current?.style.setProperty("--pointer-offset-y", `${-y * 12}px`);
+    field.current?.style.setProperty("--star-steer-x", `${-x * 260}px`);
+    field.current?.style.setProperty("--star-steer-y", `${-y * 180}px`);
+    field.current?.style.setProperty("--planet-steer-x", `${-x * 420}px`);
+    field.current?.style.setProperty("--planet-steer-y", `${-y * 300}px`);
   }
 
   return (
@@ -114,8 +140,10 @@ export function SceneCanvas() {
       }}
       onPointerMove={moveField}
       onPointerLeave={() => {
-        field.current?.style.setProperty("--pointer-offset-x", "0px");
-        field.current?.style.setProperty("--pointer-offset-y", "0px");
+        field.current?.style.setProperty("--star-steer-x", "0px");
+        field.current?.style.setProperty("--star-steer-y", "0px");
+        field.current?.style.setProperty("--planet-steer-x", "0px");
+        field.current?.style.setProperty("--planet-steer-y", "0px");
       }}
     >
       <div aria-hidden="true" style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
@@ -129,7 +157,7 @@ export function SceneCanvas() {
               top: "50%",
               width: planet.size,
               height: planet.size,
-              transform: "translate(-50%, -50%)",
+              transform: "translate(calc(-50% + var(--planet-steer-x, 0px)), calc(-50% + var(--planet-steer-y, 0px)))",
               borderRadius: "50%",
               animation: `planet-approach ${planet.duration} linear ${planet.delay} infinite`,
               willChange: "translate, scale",
@@ -190,6 +218,10 @@ export function SceneCanvas() {
         />
       ))}
       <style>{`
+        .starfield-dot,
+        .ambient-planet {
+          transition: transform 480ms cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
         .planet-ring-sparkle {
           position: absolute;
           width: 3px;
@@ -232,6 +264,8 @@ export function SceneCanvas() {
           }
         }
         @media (prefers-reduced-motion: reduce) {
+          .starfield-dot,
+          .ambient-planet { transition: none; }
           .planet-ring-sparkle { animation: none; opacity: 0.8; }
           .starfield-dot { animation-duration: 28s !important; }
           .ambient-planet { animation-duration: 30s !important; }
