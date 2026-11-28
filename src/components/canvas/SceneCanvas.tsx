@@ -10,6 +10,7 @@ function seededRandom(seed: number) {
 
 const planetSurface = "radial-gradient(circle at 31% 26%, #f4fbff 0%, #dcecff 13%, #b4c9e8 37%, #637a9d 69%, #101827 100%)";
 const planetGlow = "0 0 24px 4px rgb(183 224 255 / 48%), 0 0 68px 14px rgb(122 193 255 / 30%), inset -20px -14px 26px rgb(1 7 16 / 68%), inset 8px 7px 16px rgb(255 255 255 / 24%)";
+const planetRingGlow = "0 0 2px rgb(255 252 236 / 100%), 0 0 8px rgb(255 224 163 / 98%), 0 0 20px rgb(246 181 92 / 86%), 0 0 42px rgb(246 181 92 / 45%)";
 
 const planets = [
   {
@@ -21,18 +22,23 @@ const planets = [
     delay: "-7s",
     surface: planetSurface,
     glow: planetGlow,
-    ring: undefined,
+    rings: [],
   },
   {
     id: "violet",
     travelX: -30,
     travelY: -28,
-    size: "clamp(74px, 8vw, 104px)",
+    size: "clamp(64px, 7vw, 90px)",
     duration: "20s",
     delay: "-13s",
     surface: planetSurface,
     glow: planetGlow,
-    ring: "rgb(183 224 255 / 75%)",
+    rings: [
+      { id: "outer", width: "190%", height: "68%", rotation: "-22deg", color: "rgb(255 215 155 / 92%)", front: false },
+      { id: "middle-back", width: "158%", height: "52%", rotation: "-21deg", color: "rgb(255 239 205 / 100%)", front: false },
+      { id: "inner", width: "136%", height: "40%", rotation: "-24deg", color: "rgb(255 207 137 / 96%)", front: true },
+      { id: "middle-front", width: "176%", height: "61%", rotation: "-23deg", color: "rgb(255 232 184 / 100%)", front: true },
+    ],
   },
   {
     id: "amber",
@@ -43,7 +49,7 @@ const planets = [
     delay: "-18s",
     surface: planetSurface,
     glow: planetGlow,
-    ring: undefined,
+    rings: [],
   },
 ] as const;
 
@@ -127,24 +133,27 @@ export function SceneCanvas() {
               "--planet-opacity": "0.88",
             } as CSSProperties}
           >
-            {planet.ring ? (
+            {planet.rings.map((ring) => (
               <span
+                key={ring.id}
                 style={{
                   position: "absolute",
                   left: "50%",
                   top: "50%",
-                  width: "155%",
-                  height: "54%",
-                  transform: "translate(-50%, -50%) rotate(-22deg)",
-                  border: `1px solid ${planet.ring}`,
+                  width: ring.width,
+                  height: ring.height,
+                  transform: `translate(-50%, -50%) rotate(${ring.rotation})`,
+                  border: `1px solid ${ring.color}`,
                   borderRadius: "50%",
-                  boxShadow: `0 0 12px ${planet.ring}`,
+                  boxShadow: planetRingGlow,
+                  zIndex: ring.front ? 2 : 0,
                 }}
               />
-            ) : null}
+            ))}
             <span
               style={{
                 position: "relative",
+                zIndex: 1,
                 display: "block",
                 width: "100%",
                 height: "100%",
