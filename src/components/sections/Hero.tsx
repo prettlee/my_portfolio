@@ -28,7 +28,7 @@ export function Hero() {
         animate="show"
         transition={{ duration: 0.8, delay: reduceMotion ? 0 : 0.08, ease: [0.22, 1, 0.36, 1] }}
       >
-        Exploring the space between ideas.
+        Hi, I'm Pratyush
       </motion.h1>
       <motion.p
         className="mt-6 max-w-md text-base leading-7 text-mist"
@@ -37,7 +37,7 @@ export function Hero() {
         animate="show"
         transition={{ duration: 0.8, delay: reduceMotion ? 0 : 0.16, ease: [0.22, 1, 0.36, 1] }}
       >
-        Point your cursor where you want to travel; move it to the opposite side to turn back.
+        I'm a sophomore studying Computer Science at Purdue University
       </motion.p>
     </section>
   );
