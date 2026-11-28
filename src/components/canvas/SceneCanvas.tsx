@@ -14,33 +14,33 @@ const planetGlow = "0 0 24px 4px rgb(183 224 255 / 48%), 0 0 68px 14px rgb(122 1
 const planets = [
   {
     id: "azure",
-    left: "78%",
-    top: "23%",
+    travelX: 28,
+    travelY: -27,
     size: "clamp(88px, 12vw, 148px)",
-    duration: "38s",
-    delay: "-11s",
+    duration: "18s",
+    delay: "-7s",
     surface: planetSurface,
     glow: planetGlow,
     ring: undefined,
   },
   {
     id: "violet",
-    left: "91%",
-    top: "58%",
+    travelX: -30,
+    travelY: -28,
     size: "clamp(74px, 8vw, 104px)",
-    duration: "46s",
-    delay: "-27s",
+    duration: "20s",
+    delay: "-13s",
     surface: planetSurface,
     glow: planetGlow,
     ring: "rgb(183 224 255 / 75%)",
   },
   {
     id: "amber",
-    left: "67%",
-    top: "75%",
+    travelX: 17,
+    travelY: 25,
     size: "clamp(64px, 7vw, 88px)",
-    duration: "52s",
-    delay: "-36s",
+    duration: "22s",
+    delay: "-18s",
     surface: planetSurface,
     glow: planetGlow,
     ring: undefined,
@@ -114,16 +114,18 @@ export function SceneCanvas() {
             className="ambient-planet"
             style={{
               position: "absolute",
-              left: planet.left,
-              top: planet.top,
+              left: "50%",
+              top: "50%",
               width: planet.size,
               height: planet.size,
               transform: "translate(-50%, -50%)",
               borderRadius: "50%",
-              animation: `planet-float ${planet.duration} ease-in-out ${planet.delay} infinite alternate`,
+              animation: `planet-approach ${planet.duration} linear ${planet.delay} infinite`,
               willChange: "translate, scale",
-              opacity: 0.88,
-            }}
+              "--planet-x": `${planet.travelX}vw`,
+              "--planet-y": `${planet.travelY}vh`,
+              "--planet-opacity": "0.88",
+            } as CSSProperties}
           >
             {planet.ring ? (
               <span
@@ -170,13 +172,17 @@ export function SceneCanvas() {
             opacity: var(--star-opacity);
           }
         }
-        @keyframes planet-float {
-          from { translate: 0 0; scale: 1; }
-          to { translate: 0 -12px; scale: 1.035; }
+        @keyframes planet-approach {
+          from { translate: 0 0; scale: 0.12; opacity: 0.02; }
+          to {
+            translate: var(--planet-x) var(--planet-y);
+            scale: 1.5;
+            opacity: var(--planet-opacity);
+          }
         }
         @media (prefers-reduced-motion: reduce) {
           .starfield-dot { animation-duration: 28s !important; }
-          .ambient-planet { animation-duration: 52s !important; }
+          .ambient-planet { animation-duration: 30s !important; }
         }
       `}</style>
     </div>
