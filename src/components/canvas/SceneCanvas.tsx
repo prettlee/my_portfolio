@@ -14,23 +14,29 @@ export function SceneCanvas() {
     const bright = index % 7 === 0;
     const seed = index + 900;
     const diameter = bright ? 2.4 + seededRandom(seed + 2) * 1.8 : 1 + seededRandom(seed + 2) * 1.2;
+    const targetX = (seededRandom(seed + 6) - 0.5) * 190;
+    const targetY = (seededRandom(seed + 7) - 0.5) * 140;
+    const opacity = bright ? 1 : 0.4 + seededRandom(seed + 3) * 0.45;
     return {
       bright,
       style: {
-        left: `${seededRandom(seed) * 100}%`,
-        top: `${seededRandom(seed + 1) * 100}%`,
+        left: "50%",
+        top: "50%",
         width: `${diameter}px`,
         height: `${diameter}px`,
-        opacity: bright ? 0.92 : 0.35 + seededRandom(seed + 3) * 0.45,
+        opacity,
         position: "absolute",
         display: "block",
         borderRadius: "50%",
         background: bright ? "#f4fbff" : "#b4c9e8",
         boxShadow: bright ? "0 0 6px 1px rgb(183 224 255 / 70%), 0 0 14px 2px rgb(122 193 255 / 35%)" : "none",
-        animation: `star-drift ${5 + seededRandom(seed + 4) * 14}s linear ${-seededRandom(seed + 5) * 18}s infinite`,
+        animation: `star-approach ${5 + seededRandom(seed + 4) * 11}s linear ${-seededRandom(seed + 5) * 16}s infinite`,
         transform: "translate3d(var(--pointer-offset-x, 0px), var(--pointer-offset-y, 0px), 0)",
-        willChange: "translate",
-      } satisfies CSSProperties,
+        willChange: "translate, scale",
+        "--star-x": `${targetX}vw`,
+        "--star-y": `${targetY}vh`,
+        "--star-opacity": String(opacity),
+      } as CSSProperties,
     };
   });
 
@@ -70,9 +76,13 @@ export function SceneCanvas() {
         />
       ))}
       <style>{`
-        @keyframes star-drift {
-          from { translate: 0 -12vh; }
-          to { translate: 0 112vh; }
+        @keyframes star-approach {
+          from { translate: 0 0; scale: 0.12; opacity: 0.02; }
+          to {
+            translate: var(--star-x) var(--star-y);
+            scale: 1.5;
+            opacity: var(--star-opacity);
+          }
         }
         @media (prefers-reduced-motion: reduce) {
           .starfield-dot { animation-duration: 28s !important; }
