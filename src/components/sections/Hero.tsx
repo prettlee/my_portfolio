@@ -37,7 +37,7 @@ export function Hero() {
         animate="show"
         transition={{ duration: 0.8, delay: reduceMotion ? 0 : 0.16, ease: [0.22, 1, 0.36, 1] }}
       >
-        Move your cursor in a full circle to steer 360° through space and discover new planets.
+        Point your cursor in any direction to explore 360° of space and discover new planets as stars rush by.
       </motion.p>
     </section>
   );

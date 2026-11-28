@@ -82,8 +82,8 @@ const planets = [
 
 export function SceneCanvas() {
   const field = useRef<HTMLDivElement>(null);
-  const steeringTarget = useRef({ x: 0, y: 0, heading: 0 });
-  const steeringCurrent = useRef({ x: 0, y: 0, heading: 0 });
+  const steeringTarget = useRef({ x: 0, y: 0 });
+  const steeringCurrent = useRef({ x: 0, y: 0 });
   const steeringFrame = useRef<number | null>(null);
   const previousFrameTime = useRef(0);
   const stars = Array.from({ length: 220 }, (_, index) => {
@@ -122,28 +122,23 @@ export function SceneCanvas() {
     const easing = 1 - Math.exp(-elapsed / 130);
     const target = steeringTarget.current;
     const current = steeringCurrent.current;
-    const headingDelta = ((target.heading - current.heading + 540) % 360) - 180;
 
     current.x += (target.x - current.x) * easing;
     current.y += (target.y - current.y) * easing;
-    current.heading = (current.heading + headingDelta * easing + 360) % 360;
 
     const element = field.current;
     element?.style.setProperty("--star-steer-x", `${-current.x * 260}px`);
-    element?.style.setProperty("--star-steer-y", `${-current.y * 180}px`);
+    element?.style.setProperty("--star-steer-y", `${-current.y * 260}px`);
     element?.style.setProperty("--planet-steer-x", `${-current.x * 420}px`);
-    element?.style.setProperty("--planet-steer-y", `${-current.y * 300}px`);
-    element?.style.setProperty("--world-rotation", `${current.heading}deg`);
+    element?.style.setProperty("--planet-steer-y", `${-current.y * 420}px`);
 
-    const headingRemaining = Math.abs(((target.heading - current.heading + 540) % 360) - 180);
-    if (Math.abs(target.x - current.x) > 0.001 || Math.abs(target.y - current.y) > 0.001 || headingRemaining > 0.05) {
+    if (Math.abs(target.x - current.x) > 0.001 || Math.abs(target.y - current.y) > 0.001) {
       steeringFrame.current = requestAnimationFrame(updateSteering);
       return;
     }
 
     current.x = target.x;
     current.y = target.y;
-    current.heading = target.heading;
     steeringFrame.current = null;
     previousFrameTime.current = 0;
   }
@@ -156,14 +151,15 @@ export function SceneCanvas() {
 
   function moveField(event: PointerEvent<HTMLDivElement>) {
     const bounds = event.currentTarget.getBoundingClientRect();
-    const x = (event.clientX - bounds.left) / bounds.width - 0.5;
-    const y = (event.clientY - bounds.top) / bounds.height - 0.5;
-    const radius = Math.hypot(x, y);
-    const heading = radius > 0.08
-      ? (Math.atan2(y, x) * 180 / Math.PI + 360) % 360
-      : steeringTarget.current.heading;
+    const offsetX = event.clientX - (bounds.left + bounds.width / 2);
+    const offsetY = event.clientY - (bounds.top + bounds.height / 2);
+    const distance = Math.hypot(offsetX, offsetY);
+    const maxRadius = Math.max(1, Math.min(bounds.width, bounds.height) / 2);
+    const strength = Math.min(distance / maxRadius, 1);
+    const x = distance > 0 ? (offsetX / distance) * strength : 0;
+    const y = distance > 0 ? (offsetY / distance) * strength : 0;
 
-    steeringTarget.current = { x, y, heading };
+    steeringTarget.current = { x, y };
     requestSteeringFrame();
   }
 
@@ -189,17 +185,7 @@ export function SceneCanvas() {
       onPointerMove={moveField}
       onPointerLeave={recenterField}
     >
-      <div
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          inset: 0,
-          pointerEvents: "none",
-          transform: "rotate(var(--world-rotation, 0deg))",
-          transformOrigin: "center",
-          willChange: "transform",
-        }}
-      >
+      <div aria-hidden="true" style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
         {planets.map((planet) => (
           <span
             key={planet.id}
