@@ -8,6 +8,8 @@ function seededRandom(seed: number) {
   return value - Math.floor(value);
 }
 
+const MAX_STEERING_SPEED = 1.8;
+
 const planetSurface = "radial-gradient(circle at 31% 26%, #f4fbff 0%, #dcecff 13%, #b4c9e8 37%, #637a9d 69%, #101827 100%)";
 const planetGlow = "0 0 24px 4px rgb(244 251 255 / 54%), 0 0 68px 14px rgb(244 251 255 / 34%), inset -20px -14px 26px rgb(1 7 16 / 68%), inset 8px 7px 16px rgb(255 255 255 / 24%)";
 const planetRingGlow = "0 0 2px rgb(244 251 255 / 100%), 0 0 8px rgb(244 251 255 / 98%), 0 0 20px rgb(244 251 255 / 82%), 0 0 42px rgb(244 251 255 / 42%)";
@@ -119,12 +121,18 @@ export function SceneCanvas() {
   function updateSteering(timestamp: number) {
     const elapsed = previousFrameTime.current ? Math.min(timestamp - previousFrameTime.current, 48) : 16;
     previousFrameTime.current = timestamp;
-    const easing = 1 - Math.exp(-elapsed / 130);
+    const maxStep = MAX_STEERING_SPEED * elapsed / 1000;
     const target = steeringTarget.current;
     const current = steeringCurrent.current;
+    const deltaX = target.x - current.x;
+    const deltaY = target.y - current.y;
+    const distance = Math.hypot(deltaX, deltaY);
+    const step = Math.min(distance, maxStep);
 
-    current.x += (target.x - current.x) * easing;
-    current.y += (target.y - current.y) * easing;
+    if (distance > 0) {
+      current.x += (deltaX / distance) * step;
+      current.y += (deltaY / distance) * step;
+    }
 
     const element = field.current;
     element?.style.setProperty("--star-steer-x", `${-current.x * 260}px`);
@@ -132,7 +140,7 @@ export function SceneCanvas() {
     element?.style.setProperty("--planet-steer-x", `${-current.x * 420}px`);
     element?.style.setProperty("--planet-steer-y", `${-current.y * 420}px`);
 
-    if (Math.abs(target.x - current.x) > 0.001 || Math.abs(target.y - current.y) > 0.001) {
+    if (distance > step + 0.001) {
       steeringFrame.current = requestAnimationFrame(updateSteering);
       return;
     }
@@ -163,11 +171,6 @@ export function SceneCanvas() {
     requestSteeringFrame();
   }
 
-  function recenterField() {
-    steeringTarget.current = { ...steeringTarget.current, x: 0, y: 0 };
-    requestSteeringFrame();
-  }
-
   return (
     <div
       ref={field}
@@ -183,7 +186,6 @@ export function SceneCanvas() {
         pointerEvents: "auto",
       }}
       onPointerMove={moveField}
-      onPointerLeave={recenterField}
     >
       <div aria-hidden="true" style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
         {planets.map((planet) => (
